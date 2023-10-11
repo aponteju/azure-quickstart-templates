@@ -26,8 +26,8 @@
 SERVICE_USERNAME="nagios"
 ADMIN_USERNAME="nagios"
 ADMIN_PASSWORD="Zk8LgLeR4ZimcgipTNzJKUBXVABDpYH63B9bzMbh2uRm8gYwRFPhSz8AvYspz3vs" # Don't worry, this is not the actual password. The real password will be supplied by the ARM template.
-CORE_VERSION="4.0.8"
-PLUGINS_VERSION="2.0.3"
+CORE_VERSION="4.4.14"
+PLUGINS_VERSION="2.4.6"
 LOGGING_KEY="[logging-key]"
 
 ########################################################
@@ -88,23 +88,10 @@ done
 log "Installing system essentials..."
 apt-get -y update
 
-#  Install Apache (a pre-requisite for Nagios)
-log "Installing Apache..."
-apt-get -y install apache2
-
-# Install MySQL (a pre-requisite for Nagios)
-log "Installing MySQL..."
-export DEBIAN_FRONTEND=noninteractive
-apt-get -q -y install mysql-server mysql-client
-mysqladmin -u root password $ADMIN_PASSWORD
-
-# Install PHP (a pre-requisite for Nagios)
-log "Installing PHP..."
-apt-get -y install php5 php5-mysql libapache2-mod-php5
-
-# Install LAMP prerequisites
-log "Installing other LAMP prerequisites..."
-apt-get -y install build-essential libgd2-xpm-dev apache2-utils
+#  Install prerequisites
+log "Installing Prerequisites..."
+apt-get -y install autoconf gcc libc6 make wget unzip apache2 php libapache2-mod-php7.4 libgd-dev build-essential
+apt-get -y install openssl libssl-dev
 
 # Restart apache2 service
 log "Restarting apache2 service..."
@@ -130,23 +117,33 @@ wget http://nagios-plugins.org/download/nagios-plugins-$PLUGINS_VERSION.tar.gz
 log "Configuring Nagios packages..."
 tar xzf nagios-$CORE_VERSION.tar.gz
 cd nagios-$CORE_VERSION
-./configure --with-command-group=nagcmd
+./configure --with-command-group=nagcmd --with-httpd-conf=/etc/apache2/sites-enabled
 
 # Compile and install nagios modules
 log "Compiling Nagios packages..."
 make all
 make install
-make install-init
+make install-daemoninit
 make install-config
 make install-commandmode
 
 # Install Nagios Web interface
 log "Installing the Nagios Web interface..."
-/usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-enabled/nagios.conf
+make install-webconf
+a2enmod rewrite
+a2enmod cgi
+#/usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-enabled/nagios.conf
+
+# Configure Firewall
+ufw allow apache
+ufw reload
 
 # Create a nagios admin account for logging into the Nagios web interface.
 log "Creating the admin account for logging into the Nagios web interface..."
 htpasswd -cb /usr/local/nagios/etc/htpasswd.users $ADMIN_USERNAME $ADMIN_PASSWORD
+
+# Install Prerequisites for Nagios plugins
+install -y autoconf gcc libc6 libmcrypt-dev make libssl-dev wget bc gawk dc build-essential snmp libnet-snmp-perl gettext
 
 # Install Nagios plugins
 log "Configuring Nagios plugins..."

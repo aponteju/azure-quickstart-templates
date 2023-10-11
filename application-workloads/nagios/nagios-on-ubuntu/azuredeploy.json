@@ -87,7 +87,7 @@
   "variables": {
     "imagePublisher": "Canonical",
     "imageOffer": "UbuntuServer",
-    "imageSKU": "18.04-LTS",
+    "imageSKU": "20.04-LTS",
     "computerNamePrefix": "NagiosCoreSrv",
     "numberOfInstances": "[parameters('numberOfVMInstances')]",
     "vmSize": "[parameters('vmSize')]",
